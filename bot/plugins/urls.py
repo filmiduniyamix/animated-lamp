@@ -1,51 +1,50 @@
-import asyncio
+import datetime
 
-from pyrogram import Client, Filters, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram import filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from bot.utils import is_url, get_duration
-from config import Config
+from ..utils import Utilities
+from ..screenshotbot import ScreenShotBot
+from ..config import Config
 
 
-@Client.on_message(Filters.private & Filters.text & Filters.incoming & ~Filters.edited)
+@ScreenShotBot.on_message(
+    filters.private
+    & ((filters.text & ~filters.edited) | filters.media)
+    & filters.incoming
+)
 async def _(c, m):
-    if not is_url(m.text):
-        return
-    
-    snt = await m.reply_text("Hi there, Please wait while I'm getting everything ready to process your request!", quote=True)
 
-    duration = await get_duration(m.text)
-    if duration is None:
+    if m.media:
+        if not Utilities.is_valid_file(m):
+            return
+    else:
+        if not Utilities.is_url(m.text):
+            return
+
+    snt = await m.reply_text(
+        "Hi there, Please wait while I'm getting everything ready to process your request!",
+        quote=True,
+    )
+
+    if m.media:
+        file_link = Utilities.generate_stream_link(m)
+    else:
+        file_link = m.text
+
+    duration = await Utilities.get_duration(file_link)
+    if isinstance(duration, str):
         await snt.edit_text("😟 Sorry! I cannot open the file.")
-        l = await m.forward(Config.LOG_CHANNEL)
-        await l.reply_text(f' Could not open the file.', True)
+        log = await m.forward(Config.LOG_CHANNEL)
+        await log.reply_text(duration, True)
         return
-    
-    hh, mm, ss = [int(i) for i in duration.split(":")]
-    seconds = hh*60*60 + mm*60 + ss
-    
+
+    btns = Utilities.gen_ik_buttons()
+
+    if duration >= 600:
+        btns.append([InlineKeyboardButton("Generate Sample Video!", "smpl")])
+
     await snt.edit_text(
-        text=f"Hi, Choose the number of screenshots you need.\n\nTotal duration: `{duration}` (`{seconds}s`)",
-        reply_markup=InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton("📸 2", 'url+2'),
-                    InlineKeyboardButton('📸 3', 'url+3')
-                ],
-                [
-                    InlineKeyboardButton('📸 4', 'url+4'),
-                    InlineKeyboardButton('📸 5', 'url+5')
-                ],
-                [
-                    InlineKeyboardButton('📸 6', 'url+6'),
-                    InlineKeyboardButton('📸 7', 'url+7')
-                ],
-                [
-                    InlineKeyboardButton('📸 8', 'url+8'),
-                    InlineKeyboardButton('📸 9', 'url+9')
-                ],
-                [
-                    InlineKeyboardButton('📸 10', 'url+10')
-                ]
-            ]
-        )
+        text=f"Choose one of the options.\n\nTotal duration: `{datetime.timedelta(seconds=duration)}` (`{duration}s`)",
+        reply_markup=InlineKeyboardMarkup(btns),
     )
