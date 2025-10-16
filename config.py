@@ -11,7 +11,7 @@ class Config:
     MIDDLE_MAN = int(os.environ.get('MIDDLE_MAN'))
     LINK_GEN_BOT = os.environ.get('LINK_GEN_BOT')
     LOG_CHANNEL = int(os.environ.get('-1002866769497'))
-    DATABASE_URL = os.environ.get('DATABASE_URL')
+    DATABASE_URL = os.environ.get('mongodb+srv://aadarshkumar1234768:Q8ptH5spkMkR93eg@cluster0.0ntbfcn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
     AUTH_USERS = [int(i) for i in os.environ.get('AUTH_USERS', '').split(' ')]
     
     SCRST_OP_FLDR = Path('screenshots/')
